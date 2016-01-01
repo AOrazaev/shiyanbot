@@ -100,7 +100,7 @@ def to_json(python_object):
         return {'__class__': 'bytes', '__value__': list(python_object)}
     if isinstance(python_object, weekday.Weekday):
         return repr(python_object)
-        raise TypeError(repr(python_object) + ' is not JSON serializable')
+    raise TypeError(repr(python_object) + ' is not JSON serializable')
 
 
 def fetch_schedule():
