@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from schedule import Lesson
-import weekday
-import pickle
+import os
+from schedule.schedule import Lesson
+import schedule.weekday as weekday
 
 import pyquery
 import requests
@@ -100,16 +100,21 @@ def to_json(python_object):
         return {'__class__': 'bytes', '__value__': list(python_object)}
     if isinstance(python_object, weekday.Weekday):
         return repr(python_object)
-    raise TypeError(repr(python_object) + ' is not JSON serializable')
+        raise TypeError(repr(python_object) + ' is not JSON serializable')
 
 
-def fetch_schedule():
+def fetch():
     qigong, kungfu, children = request_shiyanbin_schedule()
     kungfu = parse_table(kungfu, parse_lesson_from_kungfu_table)
     qigong = parse_table(qigong, parse_lesson_from_qigong_table)
     children = parse_table(children, parse_lesson_from_children_table)
+    return {'qigong': qigong, 'kungfu': kungfu, 'children': children}
+
+
+def main():
+    schedule = fetch()
     print(json.dumps(
-        {'qigong': qigong, 'kungfu': kungfu, 'children': children},
+        schedule,
         default=to_json,
         ensure_ascii=False,
         indent=2,
@@ -117,4 +122,4 @@ def fetch_schedule():
 
 
 if __name__ == '__main__':
-    fetch_schedule()
+    main()
