@@ -14,6 +14,7 @@ import datetime
 import subprocess
 import random
 
+import utils
 import schedule.fetcher
 
 
@@ -59,7 +60,7 @@ def get_next_token(text):
     return m.group(1), m.group(2)
 
 
-class TheBot:
+class TheBot(object):
     CmdMap = {
         'restart': ['обновись', 'восстань', 'проснись', 'вставай'],
         'today': ['сегодня'],
@@ -83,18 +84,6 @@ class TheBot:
         for cmd, aliases in self.CmdMap.items():
             for alias in aliases:
                 self.cmd_aliases[alias] = cmd
-
-
-    def action(self, server_url, name, data=None):
-        import requests
-        files = None
-        if 'photo' in data:
-            files = {'photo': ('route.png', data['photo'], 'image/png')}
-            del data['photo']
-        r = requests.post('/'.join([server_url, name]), data=data, files=files)
-        if r:
-            logging.warning(r.text)
-        return r.json() if r else None
 
 
     def process_command(self, command, text, msg):
@@ -138,7 +127,7 @@ class TheBot:
 
     def sunday_cmd(self, text, msg):
         return self.show_lessons(text, msg, dow='sun')
-    
+
     def today_cmd(self, text, msg):
         return self.show_lessons(text, msg, 0)
 
@@ -288,9 +277,9 @@ class TheBot:
         self.need_restart = False
         while True:
             try:
-                responce = self.action(server_url, 'getUpdates', {'offset': self.offset})
-                if responce and isinstance(responce, dict) and responce.get('ok'):
-                    updates = responce['result']
+                response = utils.do_request(server_url, 'getUpdates', {'offset': self.offset})
+                if response and isinstance(response, dict) and response.get('ok'):
+                    updates = response['result']
                     if updates and isinstance(updates, list):
                         logging.warn('got updates: %s', str(updates))
                         for update in updates:
@@ -299,19 +288,19 @@ class TheBot:
                                 msg_out = None
                                 if msg and 'text' in msg:
                                     msg_out = self.process_text_message(msg)
-                                if msg_out:
+                                if msg_out is not None:
                                     for msg in msg_out:
                                         action = 'sendPhoto' if 'photo' in msg else 'sendLocation' if 'latitude' in msg else 'sendMessage' 
                                         if action == 'sendMessage':
                                             msg['disable_web_page_preview'] = True
                                             msg['parse_mode'] = 'Markdown'
                                         #logging.warning('sending: %s', str(msg))
-                                        self.action(server_url, action, msg)
+                                        utils.do_request(server_url, action, msg)
                             except Exception as ex:
                                 logging.error('failed to process update: %s\n%s', str(update), str(ex))
                             self.offset = max(update['update_id']+1, self.offset)
                 else:
-                    logging.error('failed to get updates: %s', str(responce))
+                    logging.error('failed to get updates: %s', str(response))
             except KeyboardInterrupt:
                 logging.error('keyboard interrupt, stopped processing messages')
                 break
@@ -363,7 +352,7 @@ def restart(args):
 
 def run_bot(args):
     if os.path.exists(args.state):
-        bot = TheBot.load(args.state) 
+        bot = TheBot.load(args.state)
         logging.warn('Bot state loaded from %s', args.state)
     else:
         bot = TheBot()
