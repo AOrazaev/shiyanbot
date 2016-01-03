@@ -8,7 +8,7 @@ messages using stdin.
 
 from yanbinbot import TheBot
 from schedule.schedule import Lesson
-from schedule.weekday import Weekday
+import schedule.weekday as weekday
 
 import argparse
 import sys
@@ -54,13 +54,17 @@ def patch_do_request(input_file=sys.stdin, output_file=sys.stdout, debug=True):
     utils.do_request = fake_do_request
 
 
+def weekday_from_repr(s):
+    return weekday.days[weekday.days.index(s)]
+
+
 def schedule_from_json(data):
     result = {}
     for discipline in data:
         result[discipline] = {}
         for day in data[discipline]:
             for lesson in data[discipline][day]:
-                result[discipline].setdefault(day, []).append(Lesson(*lesson))
+                result[discipline].setdefault(weekday_from_repr(day), []).append(Lesson(*lesson))
     return result
 
 

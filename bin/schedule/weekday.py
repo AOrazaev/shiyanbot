@@ -30,7 +30,6 @@ class Weekday(object):
     def __repr__(self):
         return 'Weekday({0})'.format(self._names[0])
 
-
     def __hash__(self):
         return hash(repr(self))
 

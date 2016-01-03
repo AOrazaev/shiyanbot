@@ -172,7 +172,7 @@ class TheBot(object):
         only_teachers = set()
         if text:
             text = text.strip().lower()
-            logging.warn('filter: %s', text)
+            logging.warning('filter: %s', text)
             patterns = {'kungfu':'кунгфу|кунг-фу|кунг фу',
                         'qigong': 'цигун|ци-гун|ци гун|тайцзи|тайчи|тайцзицюань',
                         'children': 'дети|детские'}
@@ -183,7 +183,7 @@ class TheBot(object):
             if text.strip():
                 for teacher in all_teachers:
                     if re.search(text, teacher):
-                        logging.warn('only teacher: %s', teacher)
+                        logging.warning('only teacher: %s', teacher)
                         only_teachers.add(teacher)
         ans = ''
         for name, label in [('qigong', 'Цигун'), ('kungfu', 'Кунг-фу'), ('children', 'Дети')]:
@@ -273,34 +273,38 @@ class TheBot(object):
         return result
 
 
+    def process_response(self, server_url):
+        response = utils.do_request(server_url, 'getUpdates', {'offset': self.offset})
+        if response and isinstance(response, dict) and response.get('ok'):
+            updates = response['result']
+            if updates and isinstance(updates, list):
+                logging.warning('got updates: %s', str(updates))
+                for update in updates:
+                    try:
+                        msg = update.get('message')
+                        msg_out = None
+                        if msg and 'text' in msg:
+                            msg_out = self.process_text_message(msg)
+                        if msg_out is not None:
+                            for msg in msg_out:
+                                action = 'sendPhoto' if 'photo' in msg else 'sendLocation' if 'latitude' in msg else 'sendMessage' 
+                                if action == 'sendMessage':
+                                    msg['disable_web_page_preview'] = True
+                                    msg['parse_mode'] = 'Markdown'
+                                #logging.warning('sending: %s', str(msg))
+                                utils.do_request(server_url, action, msg)
+                    except Exception as ex:
+                        logging.error('failed to process update: %s\n%s', str(update), str(ex))
+                    self.offset = max(update['update_id']+1, self.offset)
+        else:
+            logging.error('failed to get updates: %s', str(response))
+
+
     def run(self, server_url, wait_time):
         self.need_restart = False
         while True:
             try:
-                response = utils.do_request(server_url, 'getUpdates', {'offset': self.offset})
-                if response and isinstance(response, dict) and response.get('ok'):
-                    updates = response['result']
-                    if updates and isinstance(updates, list):
-                        logging.warn('got updates: %s', str(updates))
-                        for update in updates:
-                            try:
-                                msg = update.get('message')
-                                msg_out = None
-                                if msg and 'text' in msg:
-                                    msg_out = self.process_text_message(msg)
-                                if msg_out is not None:
-                                    for msg in msg_out:
-                                        action = 'sendPhoto' if 'photo' in msg else 'sendLocation' if 'latitude' in msg else 'sendMessage' 
-                                        if action == 'sendMessage':
-                                            msg['disable_web_page_preview'] = True
-                                            msg['parse_mode'] = 'Markdown'
-                                        #logging.warning('sending: %s', str(msg))
-                                        utils.do_request(server_url, action, msg)
-                            except Exception as ex:
-                                logging.error('failed to process update: %s\n%s', str(update), str(ex))
-                            self.offset = max(update['update_id']+1, self.offset)
-                else:
-                    logging.error('failed to get updates: %s', str(response))
+                self.process_response(server_url)
             except KeyboardInterrupt:
                 logging.error('keyboard interrupt, stopped processing messages')
                 break
@@ -353,7 +357,7 @@ def restart(args):
 def run_bot(args):
     if os.path.exists(args.state):
         bot = TheBot.load(args.state)
-        logging.warn('Bot state loaded from %s', args.state)
+        logging.warning('Bot state loaded from %s', args.state)
     else:
         bot = TheBot()
     while True:
@@ -363,7 +367,7 @@ def run_bot(args):
             logging.error(str(ex))
             pass
         bot.save(args.state)
-        logging.warn('Bot state saved to %s', args.state)
+        logging.warning('Bot state saved to %s', args.state)
 
         if bot.need_restart:
             if restart(args):
