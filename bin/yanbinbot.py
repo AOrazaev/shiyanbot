@@ -20,7 +20,7 @@ import schedule.fetcher
 
 BotName = 'yanbinbot'
 ServerUrl = 'https://api.telegram.org/bot'
-BotToken = '121143491:AAH-mxW0PvFu-unJ25SrlInS-C_cbXtH_JY'
+BotToken = ''
 RootUsers = ['lainindo']
 
 ProgPath = os.path.abspath(sys.argv[0])
