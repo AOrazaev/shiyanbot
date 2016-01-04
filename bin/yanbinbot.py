@@ -20,7 +20,7 @@ import schedule.fetcher
 
 BotName = 'yanbinbot'
 ServerUrl = 'https://api.telegram.org/bot'
-BotToken = ''
+BotToken = '121143491:AAH-mxW0PvFu-unJ25SrlInS-C_cbXtH_JY'
 RootUsers = ['lainindo']
 
 ProgPath = os.path.abspath(sys.argv[0])
@@ -60,6 +60,10 @@ def get_next_token(text):
     return m.group(1), m.group(2)
 
 
+DayOfWeeks = [('mon', 'понедельник'), ('tue', 'вторник'), ('wed', 'среда'),
+              ('thu', 'четверг'), ('fri', 'пятница'), ('sat', 'суббота'), ('sun', 'воскресенье')]
+
+
 class TheBot(object):
     CmdMap = {
         'restart': ['обновись', 'восстань', 'проснись', 'вставай'],
@@ -74,6 +78,7 @@ class TheBot(object):
         'saturday': ['sat', 'сб', "суббота", 'субботу'],
         'sunday': ['sun', 'вс', "воскресенье"],
         'teachers': ['инструкторы', "мастера", "инструктора", "мастеры", "учителя", 'учители'],
+        'all_lessons': ['все', 'занятия', 'неделя'],
     }
     AttrsToSave = ['offset']
 
@@ -103,8 +108,8 @@ class TheBot(object):
         command = self.cmd_aliases.get(command, command)
         method = getattr(self, command+'_cmd', None)
         if not method:
-            logging.warning('method for command not found: %s', command)
-            return []
+            text = command + ' ' + text if text else command
+            return self.all_lessons_cmd(text, msg)
         return method(text, msg)
 
     def monday_cmd(self, text, msg):
@@ -142,6 +147,14 @@ class TheBot(object):
         s = schedule.fetcher.fetch()
         all_teachers = self.get_all_teachers(s)
         return [{'text': '\n'.join(sorted(all_teachers))}]
+
+
+    def all_lessons_cmd(self, text, msg):
+        ans = []
+        for dow, label in DayOfWeeks:
+            ans.append({'text': '\n*%s*\n\n'%label.upper()})
+            ans += self.show_lessons(text, msg, 0, dow)
+        return ans
 
 
     @staticmethod
