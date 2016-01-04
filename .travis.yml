@@ -4,4 +4,4 @@ python:
 install:
     - "pip3 install pyquery"
     - "pip3 install parse"
-script: test/run_tests.sh
+script: ./run_tests.sh
