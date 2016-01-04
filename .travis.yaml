@@ -1,0 +1,7 @@
+language: python
+python:
+    - "3.4"
+install:
+    - "pip3 install pyquery"
+    - "pip3 install parse"
+script: tests/run_tests.sh
