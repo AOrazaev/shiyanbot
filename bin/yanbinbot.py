@@ -112,6 +112,7 @@ class TheBot(object):
             return self.all_lessons_cmd(text, msg)
         return method(text, msg)
 
+
     def monday_cmd(self, text, msg):
         return self.show_lessons(text, msg, dow='mon')
 
