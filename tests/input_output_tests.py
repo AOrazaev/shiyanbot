@@ -16,6 +16,8 @@ SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 INPUT_OUTPUT_TEST_SCHEDULE = 'schedule.json'
 INPUT_OUTPUT_TEST_QUERIES = 'queries.txt'
 INPUT_OUTPUT_TEST_EXPECTED = 'expected.txt'
+FAKE_TODAY = datetime.datetime(2016, 1, 4, 15, 0, 0, 492172)
+
 
 class YanBinBotTest(unittest.TestCase):
     def setUp(self):
@@ -28,17 +30,19 @@ def read_and_close(path):
         return f.read().decode('utf-8')
 
 
-def patch_weekday_today():
+def patch_datetime_today():
+    class FakeDatetime(datetime.datetime): pass
     def fake_today():
-        return weekday.MON
-
-    weekday.today = fake_today
+        return FAKE_TODAY
+    FakeDatetime.today = fake_today
+    FakeDatetime.now = fake_today
+    datetime.datetime = FakeDatetime
 
 
 def test_functions_factory(directory):
     def test_function(self):
         # patching today
-        patch_weekday_today()
+        patch_datetime_today()
 
         # patching schedule
         schedule = read_and_close(os.path.join(directory, INPUT_OUTPUT_TEST_SCHEDULE))
