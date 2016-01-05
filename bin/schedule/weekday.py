@@ -12,15 +12,29 @@
     True
 
     >>> SUN
-    Weekday(7)
+    Weekday(sun)
+
+    >>> MON + 1
+    Weekday(tue)
+    >>> FRI + 5
+    Weekday(wed)
 '''
 
 import datetime
+import itertools
 
 
 class Weekday(object):
-    def __init__(self, names):
-        self._names = tuple(names)
+    def __init__(self, short, ru, *other_names):
+        self._short = short
+        self._ru_name = ru
+        self._names = tuple(itertools.chain([short, ru], other_names))
+
+    def short(self):
+        return self._short
+
+    def ru_name(self):
+        return self._ru_name
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -28,19 +42,23 @@ class Weekday(object):
         return self._names == other._names
 
     def __repr__(self):
-        return 'Weekday({0})'.format(self._names[0])
+        return 'Weekday({0})'.format(self._short)
 
     def __hash__(self):
         return hash(repr(self))
 
+    def __add__(self, shift):
+         return days[(days.index(self) + shift) % len(days)]
 
-MON = Weekday(['mon', '1', 'monday', 'понедельник', 'пн'])
-TUE = Weekday(['tue', '2', 'tuesday', 'вторник', 'вт'])
-WED = Weekday(['wed', '3', 'wednesday', 'среда', 'ср'])
-THU = Weekday(['thu', '4', 'thursday', 'четверг', 'чт'])
-FRI = Weekday(['fri', '5', 'friday', 'пятница', 'пт'])
-SAT = Weekday(['sat', '6', 'saturday', 'суббота', 'сб'])
-SUN = Weekday(['sun', '7', 'sunday', 'воскресенье', 'вс'])
+
+
+MON = Weekday('mon', 'понедельник', '1', 'monday', 'пн')
+TUE = Weekday('tue', 'вторник', '2', 'tuesday', 'вт')
+WED = Weekday('wed', 'среда', '3', 'wednesday', 'ср')
+THU = Weekday('thu', 'четверг', '4', 'thursday', 'чт')
+FRI = Weekday('fri', 'пятница', '5', 'friday', 'пт')
+SAT = Weekday('sat', 'суббота', '6', 'saturday', 'сб')
+SUN = Weekday('sun', 'воскресенье', '7', 'sunday', 'вс')
 
 
 days = [

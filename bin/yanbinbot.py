@@ -16,6 +16,7 @@ import random
 
 import utils
 import schedule.fetcher
+import schedule.weekday as weekday
 
 
 BotName = 'yanbinbot'
@@ -58,10 +59,6 @@ def get_next_token(text):
     if not m:
         return text, None
     return m.group(1), m.group(2)
-
-
-DayOfWeeks = [('mon', 'понедельник'), ('tue', 'вторник'), ('wed', 'среда'),
-              ('thu', 'четверг'), ('fri', 'пятница'), ('sat', 'суббота'), ('sun', 'воскресенье')]
 
 
 class TheBot(object):
@@ -114,34 +111,34 @@ class TheBot(object):
 
 
     def monday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='mon')
+        return self.show_lessons(text, msg, dow=weekday.MON)
 
     def tuesday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='tue')
+        return self.show_lessons(text, msg, dow=weekday.TUE)
 
     def wednesday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='wed')
+        return self.show_lessons(text, msg, dow=weekday.WED)
 
     def thursday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='thu')
+        return self.show_lessons(text, msg, dow=weekday.THU)
 
     def friday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='fri')
+        return self.show_lessons(text, msg, dow=weekday.FRI)
 
     def saturday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='sat')
+        return self.show_lessons(text, msg, dow=weekday.SAT)
 
     def sunday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow='sun')
+        return self.show_lessons(text, msg, dow=weekday.SUN)
 
     def today_cmd(self, text, msg):
-        return self.show_lessons(text, msg, 0)
+        return self.show_lessons(text, msg, dow=weekday.today())
 
     def tomorrow_cmd(self, text, msg):
-        return self.show_lessons(text, msg, 1)
+        return self.show_lessons(text, msg, dow=weekday.today() + 1)
 
     def aftertomorrow_cmd(self, text, msg):
-        return self.show_lessons(text, msg, 2)
+        return self.show_lessons(text, msg, dow=weekday.today() + 2)
 
 
     def teachers_cmd(self, text, msg):
@@ -152,9 +149,9 @@ class TheBot(object):
 
     def all_lessons_cmd(self, text, msg):
         ans = []
-        for dow, label in DayOfWeeks:
-            ans.append({'text': '\n*%s*\n\n'%label.upper()})
-            ans += self.show_lessons(text, msg, 0, dow)
+        for dow in weekday.days:
+            ans.append({'text': '\n*%s*\n\n' % dow.ru_name().upper()})
+            ans += self.show_lessons(text, msg, dow=dow)
         return ans
 
 
@@ -178,10 +175,10 @@ class TheBot(object):
         return text, (m.group(2) if m else None)
 
 
-    def show_lessons(self, text, msg, shift_days=0, dow=None):
+    def show_lessons(self, text, msg, dow=None):
         s = schedule.fetcher.fetch()
         all_teachers = self.get_all_teachers(s, True)
-        day_of_week = 'Weekday(%s)' % (dow or (datetime.datetime.today()+datetime.timedelta(days=shift_days)).strftime('%a').lower())
+
         types = set()
         only_teachers = set()
         if text:
@@ -204,12 +201,7 @@ class TheBot(object):
             if types and name not in types:
                 continue
             lessons = []
-            for l in s[name][day_of_week]:
-                if shift_days == 0 and not dow:
-                    starts = datetime.datetime.strptime(l.starts, '%H.%M').strftime('%H.%M') # to process time format like 8.30
-                    now = datetime.datetime.today().strftime('%H.%M')
-                    if starts < now:
-                        continue
+            for l in s[name][dow]:
                 if only_teachers and l.teacher.strip().lower() not in only_teachers:
                     continue
                 lessons.append(l)
