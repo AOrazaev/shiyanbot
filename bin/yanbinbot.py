@@ -61,6 +61,14 @@ def get_next_token(text):
     return m.group(1), m.group(2)
 
 
+def map_to_aliases(aliases_map):
+    all_aliases = {}
+    for name, aliases in aliases_map.items():
+        for alias in aliases:
+            all_aliases[alias] = name
+    return all_aliases
+
+
 class TheBot(object):
     CmdMap = {
         'restart': ['обновись', 'восстань', 'проснись', 'вставай'],
@@ -77,15 +85,44 @@ class TheBot(object):
         'teachers': ['инструкторы', "мастера", "инструктора", "мастеры", "учителя", 'учители'],
         'all_lessons': ['все', 'занятия', 'неделя'],
     }
+    TeacherMap = {
+        'ольга': ['оля'],
+        'мария': ['маша'],
+        'евгений': ['женя'],
+        'дмитрий': ['дима'],
+        'владимир': ['володя'],
+        'артем': ['тема', "тёма"],
+        'александр': ['саша'],
+        'анна': ['аня'],
+        'катерина': ['катя'],
+        'даниил': ['даня', "данила"],
+        'елена': ['лена'],
+        'анастасия': ['настя'],
+        'виталий': ['виталя'],
+        'валерий': ['валера'],
+        'иван': ['ваня'],
+        'янбин': ['шифу', "ши фу", 'ян бин'],
+        'янфан': ['ян фан'],
+        'пэнчжоу': ['пx?[еэ]?н[дч]?жо[у]?'],
+    }
     AttrsToSave = ['offset']
 
     def __init__(self):
         self.offset = 0
         self.need_restart = False
-        self.cmd_aliases = {}
-        for cmd, aliases in self.CmdMap.items():
-            for alias in aliases:
-                self.cmd_aliases[alias] = cmd
+        self.cmd_aliases = map_to_aliases(self.CmdMap)
+        self.teacher_aliases = map_to_aliases(self.TeacherMap)
+        self.schedule = None
+        self.schedule_time = None
+
+
+    def get_schedule(self):
+        now = datetime.datetime.now()
+        if self.schedule != None and now - self.schedule_time < datetime.timedelta(hours=1):
+            return self.schedule
+        self.schedule = schedule.fetcher.fetch()
+        self.schedule_time = now
+        return self.schedule
 
 
     def process_command(self, command, text, msg):
@@ -111,52 +148,50 @@ class TheBot(object):
 
 
     def monday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.MON)
+        return self.show_lessons(text, msg, weekday.MON)
 
     def tuesday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.TUE)
+        return self.show_lessons(text, msg, weekday.TUE)
 
     def wednesday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.WED)
+        return self.show_lessons(text, msg, weekday.WED)
 
     def thursday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.THU)
+        return self.show_lessons(text, msg, weekday.THU)
 
     def friday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.FRI)
+        return self.show_lessons(text, msg, weekday.FRI)
 
     def saturday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.SAT)
+        return self.show_lessons(text, msg, weekday.SAT)
 
     def sunday_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.SUN)
+        return self.show_lessons(text, msg, weekday.SUN)
 
     def today_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.today())
+        return self.show_lessons(text, msg, weekday.today(), today=True)
 
     def tomorrow_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.today() + 1)
+        return self.show_lessons(text, msg, weekday.today() + 1)
 
     def aftertomorrow_cmd(self, text, msg):
-        return self.show_lessons(text, msg, dow=weekday.today() + 2)
+        return self.show_lessons(text, msg, weekday.today() + 2)
 
 
     def teachers_cmd(self, text, msg):
-        s = schedule.fetcher.fetch()
-        all_teachers = self.get_all_teachers(s)
-        return [{'text': '\n'.join(sorted(all_teachers))}]
+        return [{'text': '\n'.join(sorted(self.get_all_teachers()))}]
 
 
     def all_lessons_cmd(self, text, msg):
         ans = []
         for dow in weekday.days:
             ans.append({'text': '\n*%s*\n\n' % dow.ru_name().upper()})
-            ans += self.show_lessons(text, msg, dow=dow)
+            ans += self.show_lessons(text, msg, dow)
         return ans
 
 
-    @staticmethod
-    def get_all_teachers(schdl, lower=False):
+    def get_all_teachers(self, lower=False):
+        schdl = self.get_schedule()
         all_teachers = set()
         for week in schdl.values():
             for day in week.values():
@@ -175,10 +210,9 @@ class TheBot(object):
         return text, (m.group(2) if m else None)
 
 
-    def show_lessons(self, text, msg, dow=None):
-        s = schedule.fetcher.fetch()
-        all_teachers = self.get_all_teachers(s, True)
-
+    def show_lessons(self, text, msg, dow=None, today=False):
+        s = self.get_schedule()
+        all_teachers = self.get_all_teachers(True)
         types = set()
         only_teachers = set()
         if text:
@@ -202,6 +236,11 @@ class TheBot(object):
                 continue
             lessons = []
             for l in s[name][dow]:
+                if today:
+                    starts = datetime.datetime.strptime(l.starts, '%H.%M').strftime('%H.%M') # to process time format like 8.30
+                    now = datetime.datetime.today().strftime('%H.%M')
+                    if starts < now:
+                        continue
                 if only_teachers and l.teacher.strip().lower() not in only_teachers:
                     continue
                 lessons.append(l)
@@ -252,12 +291,21 @@ class TheBot(object):
         return [{'text': 'Welcome, %s!'%self.get_first_name(msg)}]
 
 
+    def replace_teacher_aliases(self, text):
+        for alias, name in self.teacher_aliases.items():
+            txt, replaced = self.find_and_extract(text, alias)
+            if replaced:
+                return txt + ' ' + name
+        return text
+
+
     def process_text_message(self, msg):
         if msg.get('forward_from'):
             return []
         text = msg.get('text', '').lower()
         text, _ = self.find_and_extract(text, 'занятия|занятие')
         text, _ = self.find_and_extract(text, 'в|во')
+        text = self.replace_teacher_aliases(text)
         result = []
         cmd = None
         if text[:1] == '/':
