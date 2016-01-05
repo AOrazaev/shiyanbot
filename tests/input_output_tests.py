@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from cli_yanbinbot import patch_do_request, patch_schedule_fetching, TheBot
+from schedule import weekday
 
 import os
 import argparse
 import unittest
 import io
 import json
+import datetime
 
 
 SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -20,13 +22,24 @@ class YanBinBotTest(unittest.TestCase):
         self.bot = TheBot()
 
 
+
 def read_and_close(path):
     with open(path, 'rb') as f:
         return f.read().decode('utf-8')
 
 
+def patch_weekday_today():
+    def fake_today():
+        return weekday.MON
+
+    weekday.today = fake_today
+
+
 def test_functions_factory(directory):
     def test_function(self):
+        # patching today
+        patch_weekday_today()
+
         # patching schedule
         schedule = read_and_close(os.path.join(directory, INPUT_OUTPUT_TEST_SCHEDULE))
         patch_schedule_fetching(json.loads(schedule))
