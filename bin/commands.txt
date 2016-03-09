@@ -1,6 +1,7 @@
 today - сегодня
 tomorrow - завтра
 aftertomorrow - послезавтра
+yesterday - вчера
 monday - понедельник
 tuesday - вторник
 wednesday - среда
@@ -9,3 +10,5 @@ friday - пятница
 saturday - суббота
 sunday - воскресенье
 teachers - инструкторы
+beforeyesterday - позавчера
+beforebeforeyesterday - позапозавчера

@@ -48,8 +48,14 @@ class Weekday(object):
         return hash(repr(self))
 
     def __add__(self, shift):
+         if shift < 0:
+             return self - (-shift)
          return days[(days.index(self) + shift) % len(days)]
 
+    def __sub__(self, shift):
+         if shift < 0:
+             return self + (-shift)
+         return self + (len(days) - shift%len(days))
 
 
 MON = Weekday('mon', 'понедельник', '1', 'monday', 'пн')

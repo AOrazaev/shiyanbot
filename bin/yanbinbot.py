@@ -72,6 +72,9 @@ def map_to_aliases(aliases_map):
 class TheBot(object):
     CmdMap = {
         'restart': ['обновись', 'восстань', 'проснись', 'вставай'],
+        'beforebeforeyesterday': ['позапозавчера'],
+        'beforeyesterday': ['позавчера'],
+        'yesterday': ['вчера'],
         'today': ['сегодня'],
         'tomorrow': ['завтра'],
         'aftertomorrow': ['послезавтра'],
@@ -177,10 +180,17 @@ class TheBot(object):
     def aftertomorrow_cmd(self, text, msg):
         return self.show_lessons(text, msg, weekday.today() + 2)
 
+    def yesterday_cmd(self, text, msg):
+        return self.show_lessons(text, msg, weekday.today() - 1)
+
+    def beforeyesterday_cmd(self, text, msg):
+        return self.show_lessons(text, msg, weekday.today() - 2)
+
+    def beforebeforeyesterday_cmd(self, text, msg):
+        return self.show_lessons(text, msg, weekday.today() - 3)
 
     def teachers_cmd(self, text, msg):
         return [{'text': '\n'.join(sorted(self.get_all_teachers()))}]
-
 
     def all_lessons_cmd(self, text, msg):
         ans = []
@@ -196,9 +206,10 @@ class TheBot(object):
         for week in schdl.values():
             for day in week.values():
                 for lesson in day:
-                    teacher = lesson.teacher.strip()
-                    if teacher:
-                        all_teachers.add(teacher.lower() if lower else teacher)
+                    if lesson:
+                        teacher = lesson.teacher.strip()
+                        if teacher:
+                            all_teachers.add(teacher.lower() if lower else teacher)
         return all_teachers
 
 
@@ -236,14 +247,15 @@ class TheBot(object):
                 continue
             lessons = []
             for l in s[name][dow]:
-                if today:
-                    starts = datetime.datetime.strptime(l.starts, '%H.%M').strftime('%H.%M') # to process time format like 8.30
-                    now = datetime.datetime.today().strftime('%H.%M')
-                    if starts < now:
+                if l:
+                    if today:
+                        starts = datetime.datetime.strptime(l.starts, '%H.%M').strftime('%H.%M') # to process time format like 8.30
+                        now = datetime.datetime.today().strftime('%H.%M')
+                        if starts < now:
+                            continue
+                    if only_teachers and l.teacher.strip().lower() not in only_teachers:
                         continue
-                if only_teachers and l.teacher.strip().lower() not in only_teachers:
-                    continue
-                lessons.append(l)
+                    lessons.append(l)
             if lessons:
                 ans += '*%s*\n\n' % label
                 for l in lessons:
