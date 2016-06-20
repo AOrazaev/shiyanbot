@@ -104,7 +104,8 @@ def to_json(python_object):
 
 
 def fetch():
-    qigong, kungfu, children = request_shiyanbin_schedule()
+    sch = request_shiyanbin_schedule()
+    qigong, kungfu, children = sch[:3]
     kungfu = parse_table(kungfu, parse_lesson_from_kungfu_table)
     qigong = parse_table(qigong, parse_lesson_from_qigong_table)
     children = parse_table(children, parse_lesson_from_children_table)

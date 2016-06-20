@@ -89,6 +89,7 @@ class TheBot(object):
         'all_lessons': ['все', 'занятия', 'неделя'],
     }
     TeacherMap = {
+        'алексей': ['леша'],
         'александр': ['саша'],
         'анастасия': ['настя'],
         'анна': ['аня'],
@@ -236,11 +237,15 @@ class TheBot(object):
                 text, word = self.find_and_extract(text, pattern)
                 if word != None:
                     types.add(kind)
+            text = text.replace('\\', '')
             if text.strip():
-                for teacher in all_teachers:
-                    if re.search(text, teacher):
-                        logging.warning('only teacher: %s', teacher)
-                        only_teachers.add(teacher)
+                try: # in case re.search fails with exception due to bad text
+                    for teacher in all_teachers:
+                        if re.search(text, teacher):
+                            logging.warning('only teacher: %s', teacher)
+                            only_teachers.add(teacher)
+                finally:
+                    pass
         ans = ''
         for name, label in [('qigong', 'Цигун'), ('kungfu', 'Кунг-фу'), ('children', 'Дети')]:
             if types and name not in types:
@@ -361,6 +366,7 @@ class TheBot(object):
                                 utils.do_request(server_url, action, msg)
                     except Exception as ex:
                         logging.error('failed to process update: %s\n%s', str(update), str(ex))
+                        raise
                     self.offset = max(update['update_id']+1, self.offset)
         else:
             logging.error('failed to get updates: %s', str(response))
@@ -375,7 +381,7 @@ class TheBot(object):
                 logging.error('keyboard interrupt, stopped processing messages')
                 break
             except Exception as ex:
-                logging.error('got error: %s', str(ex))
+                pass
             if self.need_restart:
                 break
             time.sleep(wait_time)
@@ -427,11 +433,7 @@ def run_bot(args):
     else:
         bot = TheBot()
     while True:
-        try:
-            bot.run(args.server_url, 5)
-        except (KeyboardInterrupt, Exception) as ex:
-            logging.error(str(ex))
-            pass
+        bot.run(args.server_url, 5)
         bot.save(args.state)
         logging.warning('Bot state saved to %s', args.state)
 
@@ -440,6 +442,8 @@ def run_bot(args):
                 logging.warning(BotName + ' restarted as a daemon.')
                 break
             logging.error('Could not restart bot. Continuing working.')
+        else:
+            break
 
 
 def main():
